@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<screensaver name="rs" _label="Rs">
+
+  <command arg="-root"/>
+
+  <number id="min speed" type="slider" arg="-nspeed %"
+          _label="Min speed" _low-label="Slow" _high-label="Fast"
+          low="1" high="20" default="1"/>
+
+  <number id="max speed" type="slider" arg="-xspeed %"
+          _label="Max speed" _low-label="Slow" _high-label="Fast"
+          low="1" high="20" default="5"/>
+
+  <number id="clock font size" type="slider" arg="-clock-f-size %"
+            _label="Clock font size" _low-label="8" _high-label="60"
+            low="8" high="60" default="20"/>
+
+  <number id="weather font size" type="slider" arg="-weather-f-size %"
+            _label="Weather font size" _low-label="8" _high-label="60"
+            low="8" high="60" default="20"/>
+
+  <number id="forecast font size" type="slider" arg="-forecast-f-size %"
+            _label="Forecast font size" _low-label="8" _high-label="60"
+            low="8" high="60" default="15" />
+
+  <number id="playing font size" type="slider" arg="-playing-f-size %"
+            _label="Music font size" _low-label="8" _high-label="60"
+            low="8" high="60" default="20"/>
+
+  <string id="clock font name"
+             _label="Clock font name (Mono, Ubuntu, Sans, ...)"
+             arg="-clock-f-name %" />
+  <string id="weather font name"
+             _label="Weather font name (Mono, Ubuntu, Sans, ...)"
+             arg="-weather-f-name %" />
+  <string id="playing font name"
+             _label="Music font name (Mono, Ubuntu, Sans, ...)"
+             arg="-playing-f-name %" />
+
+  <string id="location"
+             _label="your location for weather forecast (lat,long), e.g. 1.23,43.21"
+             arg="-loc %" />
+  <string id="key"
+             _label="api key"
+             arg="-key %" />
+
+  <string id="lang"
+             _label="api lang (en, ru, fr,...)"
+             arg="-lang %" />
+
+  <xscreensaver-updater />
+
+  <_description>
+Shows current weather, time and now playing info.
+
+Written by Sergey Zhumatiy; 2021.
+  </_description>
+</screensaver>

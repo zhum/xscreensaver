@@ -66,6 +66,9 @@ UTILS_SRC	= $(srcdir)/../utils
 UTILS_BIN	= ../utils
 HACK_BIN	= .
 
+RS_INCLUDES = `pkg-config --cflags cairo cairo-xlib x11 pangocairo dbus-1`
+RS_LIBS = `pkg-config --libs cairo cairo-xlib x11 pangocairo dbus-1`
+
 INCLUDES_1	= -I. -I$(srcdir) -I$(UTILS_SRC) -I..
 INCLUDES	= $(INCLUDES_1) @INCLUDES@
 
@@ -92,7 +95,7 @@ UTIL_OBJS	= $(UTILS_BIN)/alpha.o $(UTILS_BIN)/colors.o \
 		  $(UTILS_BIN)/xft.o $(UTILS_BIN)/utf8wc.o \
 		  $(UTILS_BIN)/font-retry-xft.o
 
-SRCS		= attraction.c blitspin.c bouboule.c braid.c bubbles.c \
+SRCS		= rs.c attraction.c blitspin.c bouboule.c braid.c bubbles.c \
 		  bubbles-default.c decayscreen.c deco.c drift.c flag.c \
 		  flame.c forest.c vines.c galaxy.c grav.c greynetic.c \
 		  halo.c helix.c hopalong.c hypercube.c ifs.c imsmap.c \
@@ -166,7 +169,7 @@ OBJS		= attraction.o blitspin.o bouboule.o braid.o bubbles.o \
 		  tessellimage.o delaunay.o recanim.o binaryring.o \
 		  glitchpeg.o vfeedback.o scooter.o testx11.o
 
-EXES		= attraction blitspin bouboule braid decayscreen deco \
+EXES		= rs attraction blitspin bouboule braid decayscreen deco \
 		  drift flame galaxy grav greynetic halo \
 		  helix hopalong ifs imsmap julia kaleidescope \
 		  maze moire noseguy pedal \
@@ -213,7 +216,7 @@ HDRS		= screenhack.h screenhackI.h fps.h fpsI.h xlockmore.h \
 		  xlockmoreI.h automata.h bubbles.h ximage-loader.h \
 		  apple2.h analogtv.h pacman.h pacman_ai.h pacman_level.h \
 		  asm6502.h delaunay.h recanim.h
-MEN		= anemone.man apollonian.man attraction.man \
+MEN		= rs.man anemone.man apollonian.man attraction.man \
 	          blaster.man blitspin.man bouboule.man braid.man bsod.man \
 	          bumps.man ccurve.man compass.man coral.man \
 	          crystal.man cynosure.man decayscreen.man \
@@ -587,6 +590,20 @@ images/gen/6x10font_png.h:
 #
 attraction:	attraction.o	$(HACK_OBJS) $(COL) $(SPL)
 	$(CC_HACK) -o $@ $@.o	$(HACK_OBJS) $(COL) $(SPL) $(HACK_LIBS)
+
+rs:	rs.o $(HACK_OBJS) $(COL) $(SPL) $(RS_OBJS)
+	$(CC_HACK) -o $@ $@.o   $(HACK_OBJS) $(COL) $(SPL) $(RS_OBJS) $(RS_LIBS) $(HACK_LIBS) `curl-config --libs`
+
+rs.o:	$(srcdir)/rs.c $(srcdir)/rs.h
+	gcc -g -o $@ -c $(RS_INCLUDES) $(HACK_CFLAGS_BASE) `curl-config --cflags` $<
+
+rs-mpris.o:	$(srcdir)/rs-mpris.c $(srcdir)/rs.h
+	gcc -g -o $@ -c $(RS_INCLUDES) $<
+
+rs-json.o:	$(srcdir)/rs-json.c $(srcdir)/rs.h
+	gcc -g -o $@ -c $<
+rs-weather.o:	$(srcdir)/rs-weather.c $(srcdir)/rs.h
+	gcc -g -o $@ -c $(RS_INCLUDES) `curl-config --cflags` $<
 
 binaryring:  binaryring.o $(HACK_OBJS) $(COL)
 	$(CC_HACK) -o $@ $@.o	$(HACK_OBJS) $(COL) $(HACK_LIBS)

@@ -1,0 +1,17 @@
+Makefile
+config.h
+config.log
+config.status
+driver/Makefile
+driver/XScreenSaver.ad
+driver/xscreensaver.pam
+hacks/Makefile
+hacks/Makefile.NEW
+hacks/glx/Makefile
+jwxyz/Makefile
+po/Makefile
+po/Makefile.in
+po/POTFILES
+po/stamp-it
+utils/Makefile
+
