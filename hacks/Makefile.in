@@ -212,6 +212,8 @@ ANIM_OBJS	= recanim.o
 ANIM_LIBS	= @PNG_LIBS@
 THREAD_OBJS	= $(UTILS_BIN)/aligned_malloc.o $(UTILS_BIN)/thread_util.o
 
+RS_OBJS	= rs-mpris.o rs-json.o rs-weather.o
+
 HDRS		= screenhack.h screenhackI.h fps.h fpsI.h xlockmore.h \
 		  xlockmoreI.h automata.h bubbles.h ximage-loader.h \
 		  apple2.h analogtv.h pacman.h pacman_ai.h pacman_level.h \

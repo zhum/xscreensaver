@@ -494,7 +494,7 @@ static int show_weather(cairo_t *cr, struct state *st, int x, int y, int *new_w)
   /* draw main icon */
   dbl = scale_double(img, img_h, img_w);
   cairo_set_source_surface (cr, dbl, x, y);
-  cairo_paint(cr);
+  cairo_paint_with_alpha(cr, a/255);
   cairo_surface_finish(dbl);
 
   /* draw now description */
@@ -554,7 +554,7 @@ static int show_weather(cairo_t *cr, struct state *st, int x, int y, int *new_w)
 
   /* draw today icon */
   cairo_set_source_surface(cr, icon_codes_ds[st->today_image_index].day_img, x, y+dy+GAP);
-  cairo_paint(cr);
+  cairo_paint_with_alpha(cr,a/255);
 
   /* draw today description */
   res = snprintf(markup,
@@ -585,7 +585,7 @@ static int show_weather(cairo_t *cr, struct state *st, int x, int y, int *new_w)
 
   /* draw tomorrow icon */
   cairo_set_source_surface(cr, icon_codes_ds[st->tomorrow_image_index].day_img, x, y+dy+2*GAP);
-  cairo_paint(cr);
+  cairo_paint_with_alpha(cr,a/255);
 
   /* draw tomorrow description */
   res = snprintf(markup,
