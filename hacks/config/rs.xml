@@ -3,30 +3,35 @@
 
   <command arg="-root"/>
 
-  <number id="min speed" type="slider" arg="-nspeed %"
-          _label="Min speed" _low-label="Slow" _high-label="Fast"
+  <hgroup>
+  <number id="min speed" type="spinbutton" arg="-nspeed %"
+          _label="Min speed"
           low="1" high="20" default="1"/>
 
-  <number id="max speed" type="slider" arg="-xspeed %"
-          _label="Max speed" _low-label="Slow" _high-label="Fast"
+  <number id="max speed" type="spinbutton" arg="-xspeed %"
+          _label="Max speed"
           low="1" high="20" default="5"/>
+  </hgroup>
 
-  <number id="clock font size" type="slider" arg="-clock-f-size %"
-            _label="Clock font size" _low-label="8" _high-label="60"
+  <hgroup>
+  <number id="clock font size" type="spinbutton" arg="-clock-f-size %"
+            _label="Clock font size"
             low="8" high="60" default="20"/>
 
-  <number id="weather font size" type="slider" arg="-weather-f-size %"
-            _label="Weather font size" _low-label="8" _high-label="60"
+  <number id="weather font size" type="spinbutton" arg="-weather-f-size %"
+            _label="Weather font size" 
             low="8" high="60" default="20"/>
 
-  <number id="forecast font size" type="slider" arg="-forecast-f-size %"
-            _label="Forecast font size" _low-label="8" _high-label="60"
+  <number id="forecast font size" type="spinbutton" arg="-forecast-f-size %"
+            _label="Forecast font size"
             low="8" high="60" default="15" />
 
-  <number id="playing font size" type="slider" arg="-playing-f-size %"
-            _label="Music font size" _low-label="8" _high-label="60"
+  <number id="playing font size" type="spinbutton" arg="-playing-f-size %"
+            _label="Music font size"
             low="8" high="60" default="20"/>
+  </hgroup>
 
+  <hgroup>
   <string id="clock font name"
              _label="Clock font name (Mono, Ubuntu, Sans, ...)"
              arg="-clock-f-name %" />
@@ -34,20 +39,35 @@
              _label="Weather font name (Mono, Ubuntu, Sans, ...)"
              arg="-weather-f-name %" />
   <string id="playing font name"
-             _label="Music font name (Mono, Ubuntu, Sans, ...)"
+             _label="Music font name (use Mono)"
              arg="-playing-f-name %" />
+  </hgroup>
+
+  <hgroup>
+  <select id="Weather source">
+    <option id="ds"
+            _label="DarkSky"
+            arg-set="-ws-ds"
+            />
+    <option id="wa"
+            _label="WeatherApi"
+            arg-set="-ws-wa"
+            />
+  </select>
 
   <string id="location"
-             _label="your location for weather forecast (lat,long), e.g. 1.23,43.21"
+             _label="Your location for weather forecast:
+WeatherApi - city, e.g. New York;
+DarkSky -  (lat,long), e.g. 1.23,43.21"
              arg="-loc %" />
   <string id="key"
-             _label="api key"
+             _label="api key for WeatherApi or DarkSky"
              arg="-key %" />
 
   <string id="lang"
              _label="api lang (en, ru, fr,...)"
              arg="-lang %" />
-
+  </hgroup>
   <xscreensaver-updater />
 
   <_description>

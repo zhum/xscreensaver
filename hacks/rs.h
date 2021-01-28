@@ -16,11 +16,12 @@
 #define MAX_PLAY_LEN 1200
 #define MAX_PATH 1000
 #define PLAY_UPDATE_DELAY 2
-#define INFO_DEFAULT_STATUS "%track_name - %album_name - %artist_name"
+#define INFO_DEFAULT_STATUS "%track_name - %album_name - %artist_name %sicon"
 #define MAX_OUTPUT_LENGTH MAX_PLAY_LEN
 
 struct icon_name_code {
   char *name;
+  int json_code; 
   int code;
   cairo_surface_t *day_img;
   cairo_surface_t *night_img;
@@ -31,9 +32,14 @@ typedef enum {
   WeatherApi
 } WeatherSource;
 
+#define NUM_CODES_WA 48
 #define NUM_CODES_DS 13
+
+#define NUM_CODES_MAX 48
+
 #ifndef RS_WEATHER
   extern struct icon_name_code icon_codes_ds[NUM_CODES_DS];
+  extern struct icon_name_code icon_codes_wa[NUM_CODES_WA];
 #endif
 
 struct state {
@@ -67,6 +73,7 @@ struct state {
   int  clock_font_size;
   int  forecast_font_size;
   int  max_play_len;
+  int  linkback_font_size;
   int  width_one;
   char *font_face_clock;
   char *font_face_play;
@@ -75,6 +82,8 @@ struct state {
   char *font_weight_forecast;
   char *font_weight_clock;
   char *font_weight_play;
+  char *font_weight_linkback;
+  char *linkback_text;
 
   char *key;
   char *loc;
@@ -94,7 +103,7 @@ struct state {
   double tomorrow_celsium_low;
   double tomorrow_celsium_high;
 
-  char icon_path[MAX_PATH];
+  char *icon_path;
 };
 
 time_t time_now(struct tm *ret, int do_refresh);

@@ -12,10 +12,16 @@
 #include <string.h>
 #include "rs.h"
 
-#define INFO_DEFAULT_STATUS  "%track_name - %album_name - %artist_name"
+/*#define INFO_DEFAULT_STATUS  "%track_name - %album_name - %artist_name"
+*/
 #define INFO_TRACK_NAME      "%track_name"
 #define INFO_ARTIST_NAME     "%artist_name"
 #define INFO_ALBUM_NAME      "%album_name"
+#define INFO_STATUS_ICON     "%sicon"
+
+#define MPRIS_METADATA_VALUE_STOPPED "Stopped"
+#define MPRIS_METADATA_VALUE_PLAYING "Playing"
+#define MPRIS_METADATA_VALUE_PAUSED  "Paused"
 
 void str_replace(char* source, const char* search, const char* replace)
 {
@@ -84,6 +90,8 @@ void str_replace(char* source, const char* search, const char* replace)
 #define MPRIS_PLAYER_NAMESPACE     "org.mpris.MediaPlayer2"
 #define MPRIS_PLAYER_PATH          "/org/mpris/MediaPlayer2"
 #define MPRIS_PLAYER_INTERFACE     "org.mpris.MediaPlayer2.Player"
+
+#define MPRIS_PNAME_PLAYBACKSTATUS "PlaybackStatus"
 /*#define LOCAL_NAME                 "org.mpris.mprisctl"
 #define MPRIS_METHOD_NEXT          "Next"
 #define MPRIS_METHOD_PREVIOUS      "Previous"
@@ -92,7 +100,6 @@ void str_replace(char* source, const char* search, const char* replace)
 #define MPRIS_METHOD_STOP          "Stop"
 #define MPRIS_METHOD_PLAY_PAUSE    "PlayPause"
 
-#define MPRIS_PNAME_PLAYBACKSTATUS "PlaybackStatus"
 #define MPRIS_PNAME_CANCONTROL     "CanControl"
 #define MPRIS_PNAME_CANGONEXT      "CanGoNext"
 #define MPRIS_PNAME_CANGOPREVIOUS  "CanGoPrevious"
@@ -560,6 +567,9 @@ static void load_mpris_properties(DBusConnection* conn, const char* destination,
                 if (!strncmp(key, MPRIS_PNAME_METADATA, strlen(MPRIS_PNAME_METADATA))) {
                     load_metadata(&properties->metadata, &dictIter);
                 }
+                if (!strncmp(key, MPRIS_PNAME_PLAYBACKSTATUS, strlen(MPRIS_PNAME_PLAYBACKSTATUS))) {
+                    extract_string_var(properties->playback_status, &dictIter, &err);
+                }
                 if (dbus_error_is_set(&err)) {
                     fprintf(stderr, "error: %s\n", err.message);
                     dbus_error_free(&err);
@@ -667,8 +677,15 @@ static void get_mpris_info(char *output, mpris_properties *props, const char* fo
 
     str_replace(output, "-  -", "-");
 
-/*    fprintf(stdout, "%s\n", output);
-*/
+    if(strcmp(props->playback_status, MPRIS_METADATA_VALUE_PLAYING)==0){
+        str_replace(output, INFO_STATUS_ICON, "▷"); /* ▶️ */
+    }
+    else if(strcmp(props->playback_status, MPRIS_METADATA_VALUE_STOPPED)==0){
+        str_replace(output, INFO_STATUS_ICON, "□");/* ⏹️ */
+    }
+    else if(strcmp(props->playback_status, MPRIS_METADATA_VALUE_PAUSED)==0){
+        str_replace(output, INFO_STATUS_ICON, "▯▯"); /*◫ ▋▋ ⏸️ */
+    }
 }
 
 void get_mpris_string(char *output, char *info_format)

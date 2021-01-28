@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <locale.h>
+#include <wctype.h>
 
 #include <math.h>
 #include "rs.h"
@@ -36,6 +37,9 @@
 
 #define MAX_SPEED 4
 #define MIN_SPEED 1
+
+static char wa_linkback[] = "Powered by WeatherAPI.com";
+static char ds_linkback[] = "Powered by DarkSky";
 
 time_t time_now(struct tm *ret, int do_refresh);
 
@@ -63,6 +67,61 @@ static int new_speed(void){
   volatile long r = random();
   long r2 = MIN_SPEED+(r*(MAX_SPEED-MIN_SPEED))/RAND_MAX;
   return (int)r2;
+}
+
+
+static void load_ds_images(struct state *st){
+  int i;
+  for(i=0; i<NUM_CODES_DS; ++i){
+    char tmp[MAX_PATH];
+    if(snprintf(tmp, MAX_PATH, "%s/day-%d.png", st->icon_path, icon_codes_ds[i].code)<0){
+      fprintf(stderr, "Cannot build path to icon %d\n", icon_codes_ds[i].code);
+      exit(1);
+    }
+    icon_codes_ds[i].day_img = cairo_image_surface_create_from_png(tmp);
+    if(icon_codes_ds[i].day_img == NULL ||
+      cairo_surface_status(icon_codes_ds[i].day_img) != CAIRO_STATUS_SUCCESS){
+      fprintf(stderr, "Cannot load %s\n", tmp);
+      exit(1);
+    }
+    if(snprintf(tmp, MAX_PATH, "%s/night-%d.png", st->icon_path, icon_codes_ds[i].code)<0){
+      fprintf(stderr, "Cannot build path to icon %d\n", icon_codes_ds[i].code);
+      exit(1);
+    }
+    icon_codes_ds[i].night_img = cairo_image_surface_create_from_png(tmp);
+    if(icon_codes_ds[i].night_img == NULL ||
+      cairo_surface_status(icon_codes_ds[i].night_img) != CAIRO_STATUS_SUCCESS){
+      fprintf(stderr, "Cannot load %s\n", tmp);
+      exit(1);
+    }
+  }
+}
+
+static void load_wa_images(struct state *st){
+  int i;
+  for(i=0; i<NUM_CODES_WA; ++i){
+    char tmp[MAX_PATH];
+    if(snprintf(tmp, MAX_PATH, "%s/day-%d.png", st->icon_path, icon_codes_wa[i].code)<0){
+      fprintf(stderr, "Cannot build path to icon %d\n", icon_codes_wa[i].code);
+      exit(1);
+    }
+    icon_codes_wa[i].day_img = cairo_image_surface_create_from_png(tmp);
+    if(icon_codes_wa[i].day_img == NULL ||
+      cairo_surface_status(icon_codes_wa[i].day_img) != CAIRO_STATUS_SUCCESS){
+      fprintf(stderr, "Cannot load %s\n", tmp);
+      exit(1);
+    }
+    if(snprintf(tmp, MAX_PATH, "%s/night-%d.png", st->icon_path, icon_codes_wa[i].code)<0){
+      fprintf(stderr, "Cannot build path to icon %d\n", icon_codes_wa[i].code);
+      exit(1);
+    }
+    icon_codes_wa[i].night_img = cairo_image_surface_create_from_png(tmp);
+    if(icon_codes_wa[i].night_img == NULL ||
+      cairo_surface_status(icon_codes_wa[i].night_img) != CAIRO_STATUS_SUCCESS){
+      fprintf(stderr, "Cannot load %s\n", tmp);
+      exit(1);
+    }
+  }
 }
 
 static void *
@@ -147,10 +206,13 @@ rs_init (Display *dpy, Window window)
   st->face_colour_red = 250;
   st->face_colour_green = 250;
   st->face_colour_blue = 250;
-  st->play_font_size = get_integer_resource(dpy, "playing-f-size", "Integer")*1000;/*28*1000;*/
-  st->weather_font_size = get_integer_resource(dpy, "weather-f-size", "Integer")*1000;/*28*1000;*/
-  st->clock_font_size = get_integer_resource(dpy, "clock-f-size", "Integer")*1000;/*28*1000;*/
-  st->forecast_font_size = get_integer_resource(dpy, "forecast-f-size", "Integer")*1000;/*28*1000;*/
+  st->play_font_size = get_integer_resource(dpy, "playing-f-size", "Integer")*1000;
+  st->weather_font_size = get_integer_resource(dpy, "weather-f-size", "Integer")*1000;
+  st->clock_font_size = get_integer_resource(dpy, "clock-f-size", "Integer")*1000;
+  st->forecast_font_size = get_integer_resource(dpy, "forecast-f-size", "Integer")*1000;
+
+  st->linkback_font_size = get_integer_resource(dpy, "linkback-size", "Integer")*1000;
+  st->font_weight_linkback = get_string_resource(dpy, "linkback-weight", "Integer");
 /*  strncpy(st->font_face,DEF_FACE,MAX_FONT_LEN);
   strncpy(st->font_face_clock,DEF_FACE_CLOCK,MAX_FONT_LEN);
   strncpy(st->font_face_play,DEF_FACE_PLAY,MAX_FONT_LEN);
@@ -158,7 +220,8 @@ rs_init (Display *dpy, Window window)
   strncpy(st->font_weight_clock,"normal",MAX_FONT_LEN);
   strncpy(st->font_weight_play,"normal",MAX_FONT_LEN);
 */
-  strncpy(st->icon_path,"/opt/rubysaver/apixu-weather",MAX_PATH);
+  /*strncpy(st->icon_path,"/opt/rubysaver/apixu-weather",MAX_PATH);*/
+  st->icon_path = get_string_resource(dpy, "icon-path", "icon-path");
 
   st->now_descr[0]='\0';
   st->today_descr[0]='\0';
@@ -175,67 +238,82 @@ rs_init (Display *dpy, Window window)
   st->tomorrow_celsium_low = -1000.0;
   st->tomorrow_celsium_high = -1000.0;
 
-  for(i=0; i<NUM_CODES_DS; ++i){
-    char tmp[MAX_PATH];
-    if(snprintf(tmp, MAX_PATH, "%s/day-%d.png", st->icon_path, icon_codes_ds[i].code)<0){
-      fprintf(stderr, "Cannot build path to icon %d\n", icon_codes_ds[i].code);
-      exit(1);
-    }
-    icon_codes_ds[i].day_img = cairo_image_surface_create_from_png(tmp);
-    if(icon_codes_ds[i].day_img == NULL ||
-      cairo_surface_status(icon_codes_ds[i].day_img) != CAIRO_STATUS_SUCCESS){
-      fprintf(stderr, "Cannot load %s\n", tmp);
-      exit(1);
-    }
-    if(snprintf(tmp, MAX_PATH, "%s/night-%d.png", st->icon_path, icon_codes_ds[i].code)<0){
-      fprintf(stderr, "Cannot build path to icon %d\n", icon_codes_ds[i].code);
-      exit(1);
-    }
-    icon_codes_ds[i].night_img = cairo_image_surface_create_from_png(tmp);
-    if(icon_codes_ds[i].night_img == NULL ||
-      cairo_surface_status(icon_codes_ds[i].night_img) != CAIRO_STATUS_SUCCESS){
-      fprintf(stderr, "Cannot load %s\n", tmp);
-      exit(1);
-    }
-  }
 
   tmp = get_string_resource(dpy, "weather-source", "weather-source");
   if(strcmp(tmp, "WA")==0){
     st->weather_source = WeatherApi;
+    st->weather_json_processor = weather_json_processor_wa;
+    st->linkback_text = wa_linkback;
+    load_wa_images(st);
   }
   else{
-    st->weather_source = DarkSky;    
-  }  
-  if(st->weather_source == DarkSky){
+    st->weather_source = DarkSky;
     st->weather_json_processor = weather_json_processor_ds;
-  }
-  else if(st->weather_source == WeatherApi){
-    st->weather_json_processor = weather_json_processor_wa;
-  }
+    st->linkback_text = ds_linkback;
+    load_ds_images(st);
+  }  
   return st;
 }
 
 static void split_line(const char *text, char *str1, char *str2){
-  int i,j,len;
+  int i,j;
+  int len0;
+  int len;
+  wchar_t *wtext;
+  wchar_t *wstr1;
+  wchar_t *wstr2;
 
-  len = strlen(text);
-  i = j = len/2;
+  len0 = strlen(text);
 
-  if(len==0){
-    str1[0]=str2[0]='\0';
-    return;
-  }
-  while( text[i] != ' ' && text[j] != ' ' ){
-    if( --i == 0 || ++j == len ){
-      strncpy(str1,text,len);
-      *str2 = '\0';
-      return;
+  if(len0>0){
+    wtext = malloc(sizeof(wchar_t)*len0);
+    wstr1 = malloc(sizeof(wchar_t)*len0);
+    wstr2 = malloc(sizeof(wchar_t)*len0);
+
+    if(mbstowcs(wtext, text, len0)<0){
+      fprintf(stderr, "Ooops\n");
     }
+    len = wcslen(wtext);
+    i = j = len/2;
+    wstr2[0] = L'x';
+    /* start at the middle */
+    while( !iswspace(wtext[i]) && !iswspace(wtext[j]) ){
+      if( --i == 0 || ++j == len ){
+        /* we at start/end - this is one word only. */
+        wcsncpy(wstr1, wtext, len0);
+        wstr2[0] = L'\0';
+        break;
+      }
+    }
+    /* not finished ? */
+    if( wstr2[0]!=L'\0'){
+      /* space at i-th position ? */
+      if( iswspace(wtext[i]) ){
+        wtext[i] = L'\0';
+        wcsncpy(wstr1, wtext, len0);
+        /*wstr1[i] = L'\0';*/
+        wcsncpy(wstr2, wtext+i+1, len0);
+      }
+      else{
+        /* space at j-th position */
+        wtext[j] = L'\0';
+        wcsncpy(wstr1, wtext, len0);
+        /*wstr1[j] = L'\0';*/
+        wcsncpy(wstr2, wtext+j+1, len0);
+      }
+    }
+    if(wcstombs(str1, wstr1, len0+1)<0){
+      fprintf(stderr, "Error in split line.\n");
+    }
+    if(wcstombs(str2, wstr2, len0+1)<0){
+      fprintf(stderr, "Error in split line...\n");
+    }
+    free(wtext);
+    free(wstr1);
+    free(wstr2);
   }
-  if( text[i] == ' ' ){
-    strncpy(str1,text,i);
-    str1[i] = '\0';
-    strncpy(str2,text+i+1,len-i-1);
+  else{
+    str1[0] = str2[0] = L'\0';
   }
 }
 
@@ -356,17 +434,7 @@ static int show_play_line( cairo_t *cr, struct state *st, int x, int y, wchar_t 
   else if( len > st->max_play_len){
     max_len = st->max_play_len;
   }
-/*  cur_len = swprintf(markup, MAX_PLAY_LEN, L"<span face=\"%s\" size=\"%d\" weight=\"bold\">w</span>",
-    st->font_face_play,
-    st->play_font_size);
 
-  txt_rect.x = x;
-  txt_rect.y = y;
-  wcstombs(txt, markup, MAX_PLAY_LEN);
-  pango_layout_set_markup(layout, txt, -1);
-  pango_layout_get_pixel_extents(layout, &txt_rect, NULL);
-  width_one = txt_rect.width;
-*/
   /* compose text - intro */
   cur_len = swprintf(markup, MAX_PLAY_LEN, L"<span face=\"%s\" size=\"%d\" weight=\"bold\">",
     st->font_face_play,
@@ -424,12 +492,9 @@ static int show_play_line( cairo_t *cr, struct state *st, int x, int y, wchar_t 
 
   swprintf(markup+cur_len, MAX_PLAY_LEN, L"</span>");
 
-  /*swprintf(markup, MAX_PLAY_LEN, L"<span foreground=\"#105090\" size=\"28000\">Всм првт!</span>");*/
   wcstombs(txt, markup, MAX_PLAY_LEN);
   pango_layout_set_markup(layout, txt, -1);
   cairo_move_to(cr, (int)(x-st->width_one*sh), y);
-/*  fprintf(stderr, " -- %d\n", (int)width_one*sh);
-*/
   pango_cairo_show_layout(cr,layout);
   pango_layout_get_pixel_extents(layout, &txt_rect, NULL);
   g_object_unref(layout);
@@ -443,7 +508,10 @@ static wchar_t *make_cycled(const wchar_t *text, struct timeval *tv, int speed, 
   int pos;
   int ret;
 
+/*
   ret = swprintf(buffer, MAX_PLAY_LEN*2+6, L"%ls | %ls | ", text, text);
+*/
+  ret = swprintf(buffer, MAX_PLAY_LEN*2+2, L"%ls %ls ", text, text);
 
   shift = (10.0*tv->tv_sec + (tv->tv_usec / 100000.0)) / speed;
   *sh = modf(shift, &base);
@@ -467,6 +535,19 @@ orig_height)
     return result;
 }
 
+static cairo_surface_t *get_icon(struct state *st, int i, Bool force_day){
+  return st->weather_source==DarkSky ?
+    ((force_day || is_day(st)==true) ?
+          icon_codes_ds[i].day_img :
+          icon_codes_ds[i].night_img)
+    :
+    (force_day || is_day(st)==true ?
+          icon_codes_wa[i].day_img :
+          icon_codes_wa[i].night_img);
+
+}
+
+/* returns HEIGHT of shown weather info */
 static int show_weather(cairo_t *cr, struct state *st, int x, int y, int *new_w){
   float a = is_day(st)==true ? st->day_alpha : st->night_alpha;
   
@@ -483,10 +564,12 @@ static int show_weather(cairo_t *cr, struct state *st, int x, int y, int *new_w)
 
   PangoLayout *layout;
 
+  /* Do not show weather if no key...*/
+  if(!st->key || strncmp(st->key,"none",4)==0)
+    return 0;
+
   cairo_surface_t *dbl, *img;
-  img = is_day(st)==true ?
-    icon_codes_ds[st->now_image_index].day_img :
-    icon_codes_ds[st->now_image_index].night_img;
+  img = get_icon(st, st->now_image_index, false);
 
   img_h = cairo_image_surface_get_height(img);
   img_w = cairo_image_surface_get_width(img);
@@ -497,9 +580,9 @@ static int show_weather(cairo_t *cr, struct state *st, int x, int y, int *new_w)
   cairo_paint_with_alpha(cr, a/255);
   cairo_surface_finish(dbl);
 
-  /* draw now description */
+  /* draw now description ***********************************************/
   split_line(st->now_descr, txt1, txt2);
-  layout = pango_cairo_create_layout (cr);
+
   res = snprintf(markup,
     MAX_WEATHER_LEN,
     "<span weight=\"%s\" face=\"%s\" size=\"%d\" foreground=\"#%06lX\">%c%d %s</span>",
@@ -514,11 +597,12 @@ static int show_weather(cairo_t *cr, struct state *st, int x, int y, int *new_w)
   if(res<0)
     fprintf(stderr, "Cannot build markup for 'now' weather\n");
 
+  layout = pango_cairo_create_layout (cr);
   cairo_move_to(cr, x+2*img_w+GAP, y);
   pango_layout_set_markup(layout, markup, -1);
   pango_cairo_show_layout(cr,layout);
   pango_layout_get_pixel_extents(layout, &txt_rect, NULL);
-  g_object_unref(layout);
+  /*g_object_unref(layout);*/
 
   dy = max(txt_rect.height, img_h);
   *new_w = txt_rect.width+GAP+2*img_w;
@@ -527,7 +611,7 @@ static int show_weather(cairo_t *cr, struct state *st, int x, int y, int *new_w)
   cairo_rectangle (cr, x+2*img_w+GAP, y, txt_rect.width, txt_rect.height);
   cairo_fill (cr);
 */
-  /* draw now description 2nd sline*/
+  /* draw now description 2nd line ****************************************/
   res = snprintf(markup,
     MAX_WEATHER_LEN,
     "<span weight=\"%s\" face=\"%s\" size=\"%d\" foreground=\"#%06lX\">(%c%d) %s</span>",
@@ -542,24 +626,26 @@ static int show_weather(cairo_t *cr, struct state *st, int x, int y, int *new_w)
   if(res<0)
     fprintf(stderr, "Cannot build markup for 'now' weather\n");
 
-  layout = pango_cairo_create_layout (cr);
+  /*layout = pango_cairo_create_layout (cr);*/
   cairo_move_to(cr, x+2*img_w+GAP, y+GAP+dy);
   pango_layout_set_markup(layout, markup, -1);
   pango_layout_get_pixel_extents(layout, &txt_rect, NULL);
   pango_cairo_show_layout(cr,layout);
-  g_object_unref(layout);
+  /*g_object_unref(layout);*/
 
   dy += max(txt_rect.height, img_h);
   *new_w = max(*new_w,txt_rect.width+GAP+2*img_w);
 
   /* draw today icon */
-  cairo_set_source_surface(cr, icon_codes_ds[st->today_image_index].day_img, x, y+dy+GAP);
+  img = get_icon(st, st->today_image_index, true);
+  cairo_set_source_surface(cr, img, x, y+dy+GAP);
   cairo_paint_with_alpha(cr,a/255);
 
-  /* draw today description */
+  /* draw today description **********************************************/
+  split_line(st->today_descr, txt1, txt2);
   res = snprintf(markup,
     MAX_WEATHER_LEN,
-    "<span weight=\"%s\" face=\"%s\" size=\"%d\" foreground=\"#%06lX\">%c%d..%c%d %s</span>",
+    "<span weight=\"%s\" face=\"%s\" size=\"%d\" foreground=\"#%06lX\">%c%d..%c%d %s\n%s</span>",
     st->font_weight_forecast,
     st->font_face,
     st->forecast_font_size,
@@ -568,29 +654,32 @@ static int show_weather(cairo_t *cr, struct state *st, int x, int y, int *new_w)
     abs(st->today_celsium_low),
     st->today_celsium_high>0 ? '+' : st->today_celsium_high<0 ? '-' : ' ',
     abs(st->today_celsium_high),
-    st->today_descr
+    /*st->today_descr*/
+    txt1, txt2
     );
   if(res<0)
     fprintf(stderr, "Cannot build msrkup for 'today' weather\n");
 
-  layout = pango_cairo_create_layout (cr);
+  /*layout = pango_cairo_create_layout (cr);*/
   cairo_move_to(cr, x+img_w+GAP, y+2*GAP+dy);
   pango_layout_set_markup(layout, markup, -1);
   pango_layout_get_pixel_extents(layout, &txt_rect, NULL);
   pango_cairo_show_layout(cr,layout);
-  g_object_unref(layout);
+  /*g_object_unref(layout);*/
 
   dy += max(txt_rect.height, img_h);
   *new_w = max(*new_w,txt_rect.width+GAP+img_w);
 
   /* draw tomorrow icon */
-  cairo_set_source_surface(cr, icon_codes_ds[st->tomorrow_image_index].day_img, x, y+dy+2*GAP);
+  img = get_icon(st, st->tomorrow_image_index, true);
+  cairo_set_source_surface(cr, img, x, y+dy+2*GAP);
   cairo_paint_with_alpha(cr,a/255);
 
-  /* draw tomorrow description */
+  /* draw tomorrow description **********************************************/
+  split_line(st->tomorrow_descr, txt1, txt2);
   res = snprintf(markup,
     MAX_WEATHER_LEN,
-    "<span weight=\"%s\" face=\"%s\" size=\"%d\" foreground=\"#%06lX\">%c%d..%c%d %s</span>",
+    "<span weight=\"%s\" face=\"%s\" size=\"%d\" foreground=\"#%06lX\">%c%d..%c%d %s\n%s</span>",
     st->font_weight_forecast,
     st->font_face,
     st->forecast_font_size,
@@ -599,20 +688,43 @@ static int show_weather(cairo_t *cr, struct state *st, int x, int y, int *new_w)
     abs(st->tomorrow_celsium_low),
     st->tomorrow_celsium_high>0 ? '+' : st->tomorrow_celsium_high<0 ? '-' : ' ',
     abs(st->tomorrow_celsium_high),
-    st->tomorrow_descr
+    /*st->tomorrow_descr*/
+    txt1, txt2
     );
   if(res<0)
     fprintf(stderr, "Cannot build msrkup for 'tomorrow' weather\n");
 
-  layout = pango_cairo_create_layout (cr);
+  /*layout = pango_cairo_create_layout (cr);*/
   cairo_move_to(cr, x+img_w+GAP, y+3*GAP+dy);
   pango_layout_set_markup(layout, markup, -1);
   pango_layout_get_pixel_extents(layout, &txt_rect, NULL);
   pango_cairo_show_layout(cr,layout);
-  g_object_unref(layout);
 
   dy += max(txt_rect.height, img_h);
   *new_w = max(*new_w,txt_rect.width+GAP+img_w);
+
+  /* show link back */
+  if(st->linkback_text && st->linkback_text[0] != '\0'){
+    res = snprintf(markup,
+      MAX_WEATHER_LEN,
+      "<span weight=\"%s\" face=\"%s\" size=\"%d\" foreground=\"#%06lX\">%s</span>",
+      st->font_weight_linkback,
+      st->font_face,
+      st->linkback_font_size,
+      (long)r*65536+(long)g*256+b,
+      st->linkback_text
+      );
+    if(res<0)
+      fprintf(stderr, "Cannot build msrkup for 'tomorrow' weather\n");
+    /*layout = pango_cairo_create_layout (cr);*/
+    cairo_move_to(cr, x, y+3*GAP+dy);
+    pango_layout_set_markup(layout, markup, -1);
+    pango_layout_get_pixel_extents(layout, &txt_rect, NULL);
+    pango_cairo_show_layout(cr,layout);
+    dy += txt_rect.height;
+  }
+
+  g_object_unref(layout);
 
   return dy+4*GAP;
 }
@@ -860,8 +972,11 @@ static const char *rs_defaults [] = {
   "*playing-f-name:       Mono",
   "*lang:                 en",
   "*location:             -",
-  "*key:                  -",
+  "*key:                  none",
   "*weather-source:       DS",
+  "*linkback-size:        8",
+  "*linkback-weight:      normal",
+  "*icon-path:            /opt/rubysaver/apixu-weather",
 #ifdef HAVE_MOBILE
   "*ignoreRotation:     True",
 #endif
@@ -888,8 +1003,11 @@ static XrmOptionDescRec rs_options [] = {
   { "-location",  ".location",   XrmoptionSepArg,  0  },
   { "-lang",  ".lang",   XrmoptionSepArg,  0  },
   { "-key",  ".key",   XrmoptionSepArg,  0  },
+  { "-icon-path",  ".icon-path",             XrmoptionSepArg,  "/opt/rubysaver/apixu-weather"  },
   { "-ws-ds",  ".weather-source",            XrmoptionNoArg,  "DS"  },
   { "-ws-wa",  ".weather-source",            XrmoptionNoArg,  "WA"  },
+  { "-lb-size", ".linkback-size",            XrmoptionSepArg, 0},
+  { "-lb-weight", ".linkback-weight",        XrmoptionSepArg, "normal"},
 
   { 0, 0, 0, 0 }
 };

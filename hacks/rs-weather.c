@@ -16,9 +16,9 @@ void str_replace(char* source, const char* search, const char* replace);
 #define ICON_DEF 392
 #define MAX_JSON_PATH 256
 #define WEATHER_INTERVAL 1200
-#define MAX_WEATHER_JSON 10000
+#define MAX_WEATHER_JSON 65536
 #define WEATHER_URL_DARKSKY "https://api.darksky.net/forecast/%key/%loc?lang=%lang&units=si&exclude=minutely,hourly,alerts,flags"
-#define WEATHER_URL_WATHERAPI "http://api.weatherapi.com/v1/forecast.json?key=%key&q=%loc&days=1&lang=%lang"
+#define WEATHER_URL_WATHERAPI "http://api.weatherapi.com/v1/forecast.json?key=%key&q=%loc&days=2&lang=%lang"
 #define MAX_WEATHER_URL 256
 #define WEATHER_TIMEOUT 3L
 
@@ -30,19 +30,19 @@ static char weather_json[MAX_WEATHER_JSON];
 
 struct icon_name_code icon_codes_ds[NUM_CODES_DS] = 
 {
-    {"clear-day", 113, NULL},
-    {"clear-night", 113, NULL},
-    {"cloudy", 122, NULL},
-    {"partly-cloudy-day", 116, NULL},
-    {"partly-cloudy-night", 116, NULL},
-    {"wind", 143, NULL},
-    {"rain", 305, NULL},
-    {"snow", 338, NULL},
-    {"fog", 248, NULL},
-    {"sleet", 320, NULL},
-    {"hail", 350, NULL},
-    {"thunderstorm", 389, NULL},
-    {"tornado", 395, NULL}
+  {"clear-day", -1, 113, NULL, NULL},
+  {"clear-night", -1, 113, NULL, NULL},
+  {"cloudy", -1, 122, NULL, NULL},
+  {"partly-cloudy-day", -1, 116, NULL, NULL},
+  {"partly-cloudy-night", -1, 116, NULL, NULL},
+  {"wind", -1, 143, NULL, NULL},
+  {"rain", -1, 305, NULL, NULL},
+  {"snow", -1, 338, NULL, NULL},
+  {"fog", -1, 248, NULL, NULL},
+  {"sleet", -1, 320, NULL, NULL},
+  {"hail", -1, 350, NULL, NULL},
+  {"thunderstorm", -1, 389, NULL, NULL},
+  {"tornado", -1, 395, NULL, NULL}
 };
 
 /*  def initialize(location,key,lang)
@@ -67,9 +67,40 @@ static int code_by_name_ds(const char *name){
   return ICON_DEF;
 }
 
-static int code_by_name_wa(int code){return -1;}
+static int code_by_name_wa(int code);
 
-time_t ampm2sec(const char *ampm){ return 0;}
+time_t ampm2sec(const char *ampm){
+  /*08:48 AM*/
+  struct tm tm;
+  time_t now = time_now(&tm, 0);
+
+  int hour=0, minute=0, fase=0;
+
+  for(;*ampm && fase>=0;++ampm){
+    if(*ampm==':' || *ampm == ' '){
+      fase += 1;
+      continue;
+    }
+    switch(fase){
+    case 0: /* hour */
+      hour = hour*10 + *ampm - '0';
+      break;
+    case 1: /* minute */
+      minute = minute*10 + *ampm - '0';
+      break;
+    case 2: /* am/pm */
+      if(*ampm=='P')
+        hour+=12;
+      fase=-1;
+      break;
+    }
+  }
+
+  tm.tm_sec = 0;
+  tm.tm_min = minute;
+  tm.tm_hour = hour;
+  return mktime(&tm);
+}
 /*static void desc_by_text(const wchar_t *text, wchar_t *str1, wchar_t *str2){
   int i,j,len;
 
@@ -110,7 +141,7 @@ static const char *get_weather_url(WeatherSource ws, const char *lang, const cha
     str_replace(url, "%key", key);
     str_replace(url, "%loc", location);
   }
-  /*fprintf(stderr, "%s\n", url);*/
+  fprintf(stderr, "%s\n", url);
   return url;
 }
 
@@ -218,6 +249,8 @@ static Bool process_object(json_value* value, struct state *st, char *path)
     }
   }
   i = rindex(path,'#');
+  if(i==NULL)
+    i=path;
   *i = '\0';
   return ret;
 }
@@ -284,6 +317,88 @@ static Bool process_json_value(json_value* value, struct state *st, char *path)
 */
 
 /* WeatherApi version */
+
+struct icon_name_code icon_codes_wa[NUM_CODES_WA] = 
+{
+  {"", 1000, 113, NULL, NULL},
+  {"", 1003, 116, NULL, NULL},
+  {"", 1006, 119, NULL, NULL},
+  {"", 1009, 122, NULL, NULL},
+  {"", 1030, 143, NULL, NULL},
+  {"", 1063, 176, NULL, NULL},
+  {"", 1066, 179, NULL, NULL},
+  {"", 1069, 182, NULL, NULL},
+  {"", 1072, 185, NULL, NULL},
+  {"", 1087, 200, NULL, NULL},
+  {"", 1114, 227, NULL, NULL},
+  {"", 1117, 230, NULL, NULL},
+  {"", 1135, 248, NULL, NULL},
+  {"", 1147, 260, NULL, NULL},
+  {"", 1150, 263, NULL, NULL},
+  {"", 1153, 266, NULL, NULL},
+  {"", 1168, 281, NULL, NULL},
+  {"", 1171, 284, NULL, NULL},
+  {"", 1180, 293, NULL, NULL},
+  {"", 1183, 296, NULL, NULL},
+  {"", 1186, 299, NULL, NULL},
+  {"", 1189, 302, NULL, NULL},
+  {"", 1192, 305, NULL, NULL},
+  {"", 1195, 308, NULL, NULL},
+  {"", 1198, 311, NULL, NULL},
+  {"", 1201, 314, NULL, NULL},
+  {"", 1204, 317, NULL, NULL},
+  {"", 1207, 320, NULL, NULL},
+  {"", 1210, 323, NULL, NULL},
+  {"", 1213, 326, NULL, NULL},
+  {"", 1216, 329, NULL, NULL},
+  {"", 1219, 332, NULL, NULL},
+  {"", 1222, 335, NULL, NULL},
+  {"", 1225, 338, NULL, NULL},
+  {"", 1237, 350, NULL, NULL},
+  {"", 1240, 353, NULL, NULL},
+  {"", 1243, 356, NULL, NULL},
+  {"", 1246, 359, NULL, NULL},
+  {"", 1249, 362, NULL, NULL},
+  {"", 1252, 365, NULL, NULL},
+  {"", 1255, 368, NULL, NULL},
+  {"", 1258, 371, NULL, NULL},
+  {"", 1261, 374, NULL, NULL},
+  {"", 1264, 377, NULL, NULL},
+  {"", 1273, 386, NULL, NULL},
+  {"", 1276, 389, NULL, NULL},
+  {"", 1279, 392, NULL, NULL},
+  {"", 1282, 395, NULL, NULL}
+};
+static int code_by_name_wa(int code){
+  int i;
+  for(i=0;i<NUM_CODES_WA;++i){
+    if(icon_codes_wa[i].json_code == code)
+      return i;/*con_codes_wa[i].code;*/
+  }
+  return 0;
+}
+
+static void print_st(struct state *st){
+  fprintf(stderr,"ST: ws=%s; x=%d; y=%d; dx=%d; dy=%d\n",
+    st->weather_source==DarkSky ? "DS" : "WA",
+    st->x, st->x, st->x_speed, st->y_speed);
+
+  fprintf(stderr,"now: %s\ntoday: %s\ntomorrow: %s\nimage=%d/%d/%d\nsun=%ld/%ld (%ld)\n",
+    st->now_descr, st->today_descr, st->tomorrow_descr,
+    st->now_image_index, st->today_image_index, st->tomorrow_image_index,
+    st->sunrise, st->sunset, time_now(NULL,0));
+
+/*  double now_celsium;
+  double now_feel;
+  double today_celsium_low;
+  double today_celsium_high;
+  double tomorrow_celsium_low;
+  double tomorrow_celsium_high;
+
+  char *icon_path;
+
+*/}
+
 Bool weather_json_processor_wa(json_value* value, struct state *st, char *path){
   int code;
   if(value==NULL)
@@ -333,6 +448,7 @@ Bool weather_json_processor_wa(json_value* value, struct state *st, char *path){
   else if(strcmp(path,"#forecast#forecastday#1#day#maxtemp_c")==0){
     st->tomorrow_celsium_high = value->u.dbl;
   }
+/*  print_st(st);*/
   return true;
 }
 
@@ -393,7 +509,7 @@ Bool weather_json_processor_ds(json_value* value, struct state *st, char *path){
 
 void get_weather(struct state *st, const char *lang, const char *key, const char *location){
   static time_t now, prev=0;
-  WeatherSource ws = DarkSky;
+  WeatherSource ws = st->weather_source;
 
   now = time_now(NULL, 0);
 
