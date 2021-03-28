@@ -240,7 +240,8 @@ static Bool process_object(json_value* value, struct state *st, char *path)
     }
     else{
       i = rindex(path,'#');
-      sprintf(i,"#%s",value->u.object.values[x].name);
+      if(i!=NULL)
+        sprintf(i,"#%s",value->u.object.values[x].name);
     }
     /*printf("object[%d].name = %s\n", x, value->u.object.values[x].name);*/
 
